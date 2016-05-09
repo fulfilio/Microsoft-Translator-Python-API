@@ -30,7 +30,7 @@ from setuptools import setup
 
 setup(
     name="microsofttranslator",
-    version="0.7",
+    version="0.8",
     packages=[
         'microsofttranslator',
     ],
