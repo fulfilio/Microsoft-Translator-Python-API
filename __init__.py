@@ -6,8 +6,6 @@
 
     http://msdn.microsoft.com/en-us/library/ff512419.aspx
 
-    :copyright: © 2011 by Openlabs Technologies & Consulting (P) Limited
-    :license: BSD, see LICENSE for more details.
 """
 
 __all__ = ['Translator', 'TranslateApiException']

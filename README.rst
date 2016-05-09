@@ -2,16 +2,16 @@ Microsoft Translator V2 -- Python API
 =====================================
 
 :Version: 0.7
-:Web: http://openlabs.co.in/
+:Web: http://fulfil.io/
 :keywords: Microsoft Translator
-:copyright: Openlabs Technologies & Consulting (P) LTD
+:copyright: Fulfil.IO, Openlabs Technologies & Consulting (P) LTD
 :license: BSD
 
-.. image:: https://secure.travis-ci.org/openlabs/Microsoft-Translator-Python-API.png?branch=master
-   :target: http://travis-ci.org/#!/openlabs/Microsoft-Translator-Python-API
+.. image:: https://secure.travis-ci.org/fulfilio/Microsoft-Translator-Python-API.png?branch=master
+   :target: http://travis-ci.org/#!/fulfilio/Microsoft-Translator-Python-API
 
-.. image:: https://coveralls.io/repos/openlabs/Microsoft-Translator-Python-API/badge.png?branch=master
-  :target: https://coveralls.io/r/openlabs/Microsoft-Translator-Python-API
+.. image:: https://coveralls.io/repos/fulfilio/Microsoft-Translator-Python-API/badge.png?branch=master
+  :target: https://coveralls.io/r/fulfilio/Microsoft-Translator-Python-API
 
 
 This python API implements the Microsoft Translator services which can be used 
@@ -98,4 +98,4 @@ Detect Language
 Bugs and Development on Github
 ------------------------------
 
-https://github.com/openlabs/Microsoft-Translator-Python-API
+https://github.com/fulfilio/Microsoft-Translator-Python-API
