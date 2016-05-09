@@ -21,10 +21,8 @@
     http://msdn.microsoft.com/en-us/library/ff512423.aspx
 
     The project is hosted on GitHub where your could fork the project or report
-    issues. Visit https://github.com/openlabs/Microsoft-Translator-Python-API
+    issues. Visit https://github.com/fulfilio/Microsoft-Translator-Python-API
 
-    :copyright: © 2011 by Openlabs Technologies & Consulting (P) Limited
-    :license: BSD, see LICENSE for more details.
 """
 import codecs
 from setuptools import setup
@@ -39,15 +37,15 @@ setup(
     package_dir={
         'microsofttranslator': '.'
     },
-    author="Openlabs Technologies & Consulting (P) Limited",
-    author_email="info@openlabs.co.in",
+    author="Fulfil.IO Inc., Openlabs Technologies & Consulting (P) Limited",
+    author_email="info@fulfil.io",
     description="Microsoft Translator V2 - Python API",
     long_description=codecs.open(
         'README.rst', encoding='UTF-8'
     ).read(),
     license="BSD",
     keywords="translation microsoft",
-    url="http://openlabs.co.in/",
+    url="https://www.fulfil.io/",
     include_package_data=True,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
