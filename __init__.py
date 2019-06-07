@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 """
     __init__
-
     A translator using the micrsoft translation engine documented here:
-
-    http://msdn.microsoft.com/en-us/library/ff512419.aspx
-
+    https://docs.microsoft.com/en-us/azure/cognitive-services/translator/
 """
 
-__all__ = ['Translator', 'TranslateApiException']
+__all__ = ['Translator', 'TranslatorException']
 
 try:
     import simplejson as json
@@ -16,214 +13,131 @@ except ImportError:
     import json
 
 import requests
-import six
-import warnings
 import logging
+from datetime import datetime, timedelta
 
+logger = logging.getLogger('microsofttranslator')
 
-class ArgumentOutOfRangeException(Exception):
-    def __init__(self, message):
-        self.message = message.replace('ArgumentOutOfRangeException: ', '')
-        super(ArgumentOutOfRangeException, self).__init__(self.message)
+class AzureAuthToken:
+    """ Class to make sure that .value is always a valid 10-min auth token """
+    _token = None
+    last_fetched = None
 
+    def __init__(self, api_key):
+        self.azure_api_key = api_key
 
-class TranslateApiException(Exception):
-    def __init__(self, message, *args):
-        self.message = message.replace('TranslateApiException: ', '')
-        super(TranslateApiException, self).__init__(self.message, *args)
+    @property
+    def value(self):
+        """ The value of the current auth token """
+        if self._token is None or self.outdated:
+            self.update()
+        return self._token
 
+    @property
+    def outdated(self):
+        """ Returns True if a new token value must be fetched """
+        return self.last_fetched is None or \
+               datetime.utcnow() > self.last_fetched+timedelta(minutes=9)
+
+    def update(self):
+        url = 'https://api.cognitive.microsoft.com/sts/v1.0/issueToken'
+        headers = {'Ocp-Apim-Subscription-Key': self.azure_api_key}
+        resp = requests.post(url, headers=headers)
+        self._token = resp.text
+        self.last_fetched = datetime.utcnow()
+
+class TranslatorException(Exception):
+    def __init__(self, code, message, *args):
+        self.code = code
+        self.message = message
+        super(TranslatorException, self).__init__('%d-%s' % (self.code, self.message), *args)
 
 class Translator(object):
-    """Implements AJAX API for the Microsoft Translator service
+    """ Implements the Azure Cognitive Services - Translator REST API """
 
-    :param app_id: A string containing the Bing AppID. (Deprecated)
-    """
+    base_url = 'https://api.cognitive.microsofttranslator.com'
 
-    base_url = "http://api.microsofttranslator.com/V2/Ajax.svc"
+    def __init__(self, client_key):
+        self.auth_token = AzureAuthToken(client_key)
 
-    def __init__(
-            self, client_id, client_secret,
-            scope="http://api.microsofttranslator.com",
-            grant_type="client_credentials", app_id=None, debug=False):
+    def call(self, path, params, json=None):
         """
-
-
-        :param client_id: The client ID that you specified when you registered
-                          your application with Azure DataMarket.
-        :param client_secret: The client secret value that you obtained when
-                              you registered your application with Azure
-                              DataMarket.
-        :param scope: Defaults to http://api.microsofttranslator.com
-        ;param grant_type: Defaults to "client_credentials"
-        :param app_id: Deprecated
-        :param debug: If true, the logging level will be set to debug
-
-        .. versionchanged: 0.4
-            Bing AppID mechanism is deprecated and is no longer supported.
-            See: http://msdn.microsoft.com/en-us/library/hh454950
-        """
-        if app_id is not None:
-            warnings.warn("""app_id is deprected since v0.4.
-            See: http://msdn.microsoft.com/en-us/library/hh454950
-            """, DeprecationWarning, stacklevel=2)
-
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.scope = scope
-        self.grant_type = grant_type
-        self.access_token = None
-        self.debug = debug
-        self.logger = logging.getLogger("microsofttranslator")
-        if self.debug:
-            self.logger.setLevel(level=logging.DEBUG)
-
-    def get_access_token(self):
-        """Bing AppID mechanism is deprecated and is no longer supported.
-        As mentioned above, you must obtain an access token to use the
-        Microsoft Translator API. The access token is more secure, OAuth
-        standard compliant, and more flexible. Users who are using Bing AppID
-        are strongly recommended to get an access token as soon as possible.
-
-        .. note::
-            The value of access token can be used for subsequent calls to the
-            Microsoft Translator API. The access token expires after 10
-            minutes. It is always better to check elapsed time between time at
-            which token issued and current time. If elapsed time exceeds 10
-            minute time period renew access token by following obtaining
-            access token procedure.
-
-        :return: The access token to be used with subsequent requests
-        """
-        args = {
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'scope': self.scope,
-            'grant_type': self.grant_type
-        }
-        response = requests.post(
-            'https://datamarket.accesscontrol.windows.net/v2/OAuth2-13',
-            data=args
-        ).json()
-
-        self.logger.debug(response)
-
-        if "error" in response:
-            raise TranslateApiException(
-                response.get('error_description', 'No Error Description'),
-                response.get('error', 'Unknown Error')
-            )
-        return response['access_token']
-
-    def call(self, path, params):
-        """Calls the given path with the params urlencoded
+        Calls the given path with the params urlencoded.
+        Will be POST if json is defined, otherwise a GET.
 
         :param path: The path of the API call being made
-        :param params: The parameters dictionary
+        :param params: The parameters dictionary for the query string
+        :param json: JSON data for POST body.
         """
-        if not self.access_token:
-            self.access_token = self.get_access_token()
+        params = params.copy()
+        params.update({'api-version': '3.0'})
+        url = self.base_url + '/' + path
 
-        resp = requests.get(
-            "/".join([self.base_url, path]),
-            params=params,
-            headers={'Authorization': 'Bearer %s' % self.access_token}
-        )
+        headers = {'Authorization': 'Bearer %s' % self.auth_token.value}
+        if json:
+            query_params = map(lambda e: '%s=%s' % e, params.items())
+            url += '?' + '&'.join(query_params)
+            resp = requests.post(url, json=json, headers=headers)
+        else:
+            resp = requests.get(url, params=params, headers=headers)
         resp.encoding = 'UTF-8-sig'
         rv = resp.json()
 
-        if isinstance(rv, six.string_types) and \
-                rv.startswith("ArgumentOutOfRangeException"):
-            raise ArgumentOutOfRangeException(rv)
+        if 'error' in rv:
+            error = rv['error']
+            raise TranslatorException(error['code'], error['message'])
 
-        if isinstance(rv, six.string_types) and \
-                rv.startswith("TranslateApiException"):
-            raise TranslateApiException(rv)
-
-        if isinstance(rv, six.string_types) and \
-                rv.startswith(("ArgumentException: "
-                               "The incoming token has expired")):
-            self.access_token = None
-            return self.call(path, params)
         return rv
 
-    def translate(
-            self, text, to_lang, from_lang=None,
-            content_type='text/plain', category='general'):
-        """Translates a text string from one language to another.
-
-        :param text: A string representing the text to translate.
-        :param to_lang: A string representing the language code to
-            translate the text into.
-        :param from_lang: A string representing the language code of the
-            translation text. If left None the response will include the
-            result of language auto-detection. (Default: None)
-        :param content_type: The format of the text being translated.
-            The supported formats are "text/plain" and "text/html". Any HTML
-            needs to be well-formed.
-        :param category: The category of the text to translate. The only
-            supported category is "general".
-        """
-        params = {
-            'text': text.encode('utf8'),
-            'to': to_lang,
-            'contentType': content_type,
-            'category': category,
-        }
-        if from_lang is not None:
-            params['from'] = from_lang
-        return self.call("Translate", params)
-
-    def translate_array(self, texts, to_lang, from_lang=None, **options):
-        """Translates an array of text strings from one language to another.
-
-        :param texts: A list containing texts for translation.
-        :param to_lang: A string representing the language code to
-            translate the text into.
-        :param from_lang: A string representing the language code of the
-            translation text. If left None the response will include the
-            result of language auto-detection. (Default: None)
-        :param options: A TranslateOptions element containing the values below.
-            They are all optional and default to the most common settings.
-
-                Category: A string containing the category (domain) of the
-                    translation. Defaults to "general".
-                ContentType: The format of the text being translated. The
-                    supported formats are "text/plain" and "text/html". Any
-                    HTML needs to be well-formed.
-                Uri: A string containing the content location of this
-                    translation.
-                User: A string used to track the originator of the submission.
-                State: User state to help correlate request and response. The
-                    same contents will be returned in the response.
-        """
-        options = {
-            'Category': "general",
-            'Contenttype': "text/plain",
-            'Uri': '',
-            'User': 'default',
-            'State': ''
-        }.update(options)
-        params = {
-            'texts': json.dumps(texts),
-            'to': to_lang,
-            'options': json.dumps(options),
-        }
-        if from_lang is not None:
-            params['from'] = from_lang
-
-        return self.call("TranslateArray", params)
+    @staticmethod
+    def texts_as_json(texts):
+        return [{'Text': text.encode('utf8')} for text in texts]
 
     def get_languages(self):
-        """Fetches the languages supported by Microsoft Translator
-           Returns list of languages
         """
-        return self.call('GetLanguagesForTranslate', '')
+        Fetches the languages supported by Microsoft Translator
+        Returns list of languages
+        """
+        return self.call('languages', {})['translation']
 
-    def detect_language(self, text):
-        """Detects language of given string
-           Returns two letter language - Example : fr
+    def translate(
+            self, texts,
+            to_lang, from_lang=None,
+            text_type='plain', category='general'):
+        """
+        Translates one or more text strings from one language to another.
+
+        :param texts:
+            A string array representing the texts to translate.
+        :param to_lang:
+            A string representing the language code to translate the text into.
+            Can be many languages separated by comma.
+        :param from_lang:
+            A string representing the language code of the translation text.
+            If left None the response will include
+            the result of language auto-detection. (Default: None)
+        :param text_type:
+            The format of the text being translated.
+            The supported formats are "plain" and "html".
+            Any HTML needs to be well-formed.
+        :param category:
+            The category of the text to translate.
+            The only supported category is "general".
         """
         params = {
-            'text': text.encode('utf8')
+            'to': to_lang,
+            'textType': text_type,
+            'category': category,
         }
-        return self.call('Detect', params)
+        if from_lang: params['from'] = from_lang
+        translated = self.call('translate', params, json=Translator.texts_as_json(texts))
+        translated = [[inner['text'] for inner in outer['translations']] for outer in translated]
+        return translated
+
+    def detect_language(self, texts):
+        """
+        Detects language of given string
+        Returns two letter language - Example : fr
+        :param texts: A string array representing the texts to detect language.
+        """
+        return self.call('detect', {}, json=Translator.texts_as_json(texts))

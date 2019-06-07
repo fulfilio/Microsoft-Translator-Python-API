@@ -1,47 +1,45 @@
 # -*- coding: utf-8 -*-
 """
     test
-
     Test the translator
-
 """
 import os
 import unittest
-from microsofttranslator import Translator, TranslateApiException
+from . import Translator, TranslatorException
 
-client_id = os.environ['CLIENT_ID']
-client_secret = os.environ['CLIENT_SECRET']
+azure_translator_key = os.environ['AZURE_TRANSLATOR_KEY']
 
-default_languages = [u'en', u'fr', u'de']
-
+default_languages = ['en', 'fr', 'de']
 
 class TestTranslator(unittest.TestCase):
-
     def test_translate(self):
-        client = Translator(client_id, client_secret, debug=True)
-        self.assertEqual(
-            client.translate("hello", "pt"), u'Ol\xe1'
-        )
+        client = Translator(azure_translator_key)
+        translated = client.translate(['hello', 'how are you?'], 'pt,fr')
+        self.assertEqual(translated, [
+            [u'Ol\xe1', u'Bonjour'],
+            [u'Como est\xe1?', u'Comment vas-tu?'],
+        ])
 
-    def test_translate_array(self):
-        client = Translator(client_id, client_secret, debug=True)
-        self.assertEqual(client.translate("hello", "pt"), u'Ol\xe1')
+    def test_invalid_translator_key(self):
+        client = Translator('invalid_translator_key')
+        with self.assertRaises(TranslatorException):
+            client.translate(['hello'], 'pt')
 
-    def test_invalid_client_id(self):
-        client = Translator("foo", "bar")
-        with self.assertRaises(TranslateApiException):
-            client.translate("hello", "pt")
+    def test_invalid_language(self):
+        client = Translator(azure_translator_key)
+        with self.assertRaises(TranslatorException):
+            client.translate(['hello'], 'abcd')
 
     def test_get_languages(self):
-        client = Translator(client_id, client_secret, debug=True)
+        client = Translator(azure_translator_key)
         languages = client.get_languages()
-        self.assertEqual(type(languages), list)
-        self.assertTrue(set(default_languages).issubset(set(languages)))
+        for language in default_languages:
+            self.assertIn(language, languages)
 
     def test_detect_language(self):
-        client = Translator(client_id, client_secret, debug=True)
-        self.assertEqual(client.detect_language('hello'), u'en')
-
+        client = Translator(azure_translator_key)
+        detected_language = client.detect_language(['how are you?'])[0]
+        self.assertEqual(detected_language['language'], 'en')
 
 def test_all():
     loader = unittest.TestLoader()

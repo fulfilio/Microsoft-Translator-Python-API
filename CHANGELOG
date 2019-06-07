@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 0.9
+-----------
+
+* Added support for version 3 of the API (Thanks to @newearthmartin)
+* Removed legacy code from version 1 and 2
+* This release is not backwards compatible:
+     - Methods take now an array of texts instead a single text
+     - API calls return more information in JSON format
+
+Version 0.8
+-----------
+
+* Added support for version 2 of the API (Thanks to @flyinactor91)
+* Added new way of instantiating Translator using only Azure Translator Key (for V2)
+
 Version 0.7
 -----------
  * Add support for language detection and finding supported languages (Thanks
@@ -13,7 +28,7 @@ Version 0.6
 Version 0.4
 -----------
  * Updated to use the Oauth based token issued by Bing
- * This release is not backward compatibleas the class signature has changed
+ * This release is not backward compatible as the class signature has changed
 
 Version 0.3
 -----------

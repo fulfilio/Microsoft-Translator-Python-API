@@ -1,7 +1,7 @@
-Microsoft Translator V2 -- Python API
+Microsoft Translator V3 -- Python API
 =====================================
 
-:Version: 0.7
+:Version: 0.9
 :Web: http://fulfil.io/
 :keywords: Microsoft Translator
 :copyright: Fulfil.IO, Openlabs Technologies & Consulting (P) LTD
@@ -21,27 +21,11 @@ or application, or those desiring to communicate with people of a different
 language group.
 
 
-Example Usage:
-::
+Create your Azure translation key
+---------------------------------
 
-        >>> from microsofttranslator import Translator
-        >>> translator = Translator('<Your Client ID>', '<Your Client Secret>')
-        >>> print translator.translate("Hello", "pt")
-        "Olá"
-
-Registering your application
-----------------------------
-
-To register your application with Azure DataMarket, 
-visit https://datamarket.azure.com/developer/applications/ using the
-LiveID credentials from step 1, and click on “Register”. In the
-“Register your application” dialog box, you can define your own
-Client ID and Name. The redirect URI is not used for the Microsoft
-Translator API. However, the redirect URI field is a mandatory field,
-and you must provide a URI to obtain the access code. A description is
-optional.
-
-Take a note of the client ID and the client secret value.
+To sign up for Translator Text API, please follow instructions here
+https://docs.microsoft.com/en-us/azure/cognitive-services/translator/translator-text-how-to-signup
 
 Installing
 ----------
@@ -54,25 +38,30 @@ Installing
 Features
 --------
 
+
 Translation
 +++++++++++
 
 ::
 
         >>> from microsofttranslator import Translator
-        >>> translator = Translator('<Your Client ID>', '<Your Client Secret>')
-        >>> print translator.translate("Hello", "pt")
-        "Olá"
+        >>> translator = Translator('<Your Azure Translator Key>')
+        >>> print translator.translate(['hello'], 'es')
+        [['Hola']]
 
-Translate multiple words at once
-++++++++++++++++++++++++++++++++
+
+Translate multiple phrases and multiple languages at once
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ::
 
         >>> from microsofttranslator import Translator
-        >>> translator = Translator('<Your Client ID>', '<Your Client Secret>')
-        >>> translator.translate_array(['apple', 'orange'], 'pt')
-        [{u'TranslatedText': u'Apple', u'From': u'en', u'OriginalTextSentenceLengths': [5], u'TranslatedTextSentenceLengths': [5]}, {u'TranslatedText': u'laranja', u'From': u'en', u'OriginalTextSentenceLengths': [6], u'TranslatedTextSentenceLengths': [7]}]
+        >>> translator = Translator('<Your Azure Translator Key>')
+        >>> print translator.translate(['hello', 'good bye'], 'de,it')
+        [
+            ['Hallo', 'Ciao'],
+            ['Auf Wiedersehen', 'Arrivederci']
+        ]
 
 Get supported languages
 +++++++++++++++++++++++
@@ -80,9 +69,17 @@ Get supported languages
 ::
 
         >>> from microsofttranslator import Translator
-        >>> translator = Translator('<Your Client ID>', '<Your Client Secret>')
+        >>> translator = Translator('<Your Azure Translator Key>')
         >>> print translator.get_languages()
-        [u'ar', u'bg', u'ca', u'zh-CHS', u'zh-CHT', u'cs', u'da', u'nl', u'en', u'et', u'fi', u'fr', u'de', u'el', u'ht', u'he', u'hi', u'mww', u'hu', u'id', u'it', u'ja', u'tlh', u'tlh-Qaak', u'ko', u'lv', u'lt', u'ms', u'mt', u'no', u'fa', u'pl', u'pt', u'ro', u'ru', u'sk', u'sl', u'es', u'sv', u'th', u'tr', u'uk', u'ur', u'vi', u'cy']
+        {
+            ...
+            'en': {'nativeName': 'English', 'name': 'English', 'dir': 'ltr'},
+            'es': {'nativeName': 'Espa\xf1ol', 'name': 'Spanish', 'dir': 'ltr'},
+            'et': {'nativeName': 'Eesti', 'name': 'Estonian', 'dir': 'ltr'},
+            'fa': {'nativeName': 'Persian', 'name': 'Persian', 'dir': 'rtl'},
+            'fi': {'nativeName': 'Suomi', 'name': 'Finnish', 'dir': 'ltr'},
+            ...
+        }
 
 Detect Language
 +++++++++++++++
@@ -90,9 +87,19 @@ Detect Language
 ::
 
         >>> from microsofttranslator import Translator
-        >>> translator = Translator('<Your Client ID>', '<Your Client Secret>')
-        >>> translator.detect_language('hello')
-        u'en'
+        >>> translator = Translator('<Your Azure Translator Key>')
+        >>> translator.detect_language('how are you?')
+        {
+            'language': 'en',
+            'score': 1.0,
+            'isTranslationSupported': True,
+            'isTransliterationSupported': False,
+            'alternatives': [
+                {'score': 1.0, 'isTranslationSupported': True, 'isTransliterationSupported': False, 'language': 'ro'},
+                {'score': 1.0, 'isTranslationSupported': True, 'isTransliterationSupported': False, 'language': 'fil'}
+            ]
+        }
+
 
 
 Bugs and Development on Github
